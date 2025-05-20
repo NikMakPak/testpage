@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Мини‑приложение</title>
+</head>
+<body style="display:flex; flex-direction:column; align-items:center; margin-top:50px;">
+  <h2>Отправить цифру боту</h2>
+  <input id="numberInput" type="number" placeholder="Введите цифру" style="font-size:1.2em; padding:5px; width:100px; text-align:center;">
+  <button id="sendBtn" style="margin-top:15px; font-size:1.2em; padding:10px 20px;">Сохранить</button>
+
+  <script>
+    // Telegram Web App JS
+    const tg = window.Telegram.WebApp;
+    tg.expand();  // расширить Web App на весь экран
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const num = document.getElementById('numberInput').value;
+      if (num === '') {
+        alert('Введите цифру!');
+        return;
+      }
+      // Отправляем данные в бота
+      tg.sendData(num.toString());
+    });
+  </script>
+</body>
+</html>
