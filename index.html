@@ -2,28 +2,232 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Мини‑приложение</title>
+  <title>Клон фильтров Encar (с корректным годом)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .search_part { border: 1px solid #ccc; padding: 16px; border-radius: 8px; max-width: 1000px; }
+    .search_title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    fieldset { margin-bottom: 16px; border: none; }
+    legend { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+    .deplist { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+    .deplist dd { margin: 0 12px 8px 0; }
+    .deplist dt { font-weight: bold; margin-top: 12px; }
+    .deplist a { text-decoration: none; color: #0077cc; }
+    .deplist a.selected { font-weight: bold; color: #d12b1b; }
+    .selectbox { display: flex; gap: 8px; align-items: center; }
+    .selectbox select, .selectbox input { padding: 4px; }
+    .btn_apply { padding: 8px 16px; font-size: 16px; }
+  </style>
 </head>
-<body style="display:flex; flex-direction:column; align-items:center; margin-top:50px;">
-  <h2>Отправить цифру боту</h2>
-  <input id="numberInput" type="number" placeholder="Введите цифру" style="font-size:1.2em; padding:5px; width:100px; text-align:center;">
-  <button id="sendBtn" style="margin-top:15px; font-size:1.2em; padding:10px 20px;">Сохранить</button>
+<body>
 
-  <script>
-    // Telegram Web App JS
-    const tg = window.Telegram.WebApp;
-    tg.expand();  // расширить Web App на весь экран
+<div id="rySch_car" class="search_part">
+  <div class="search_title">
+    <h4>Поиск импортированных автомобилей</h4>
+    <span><em id="resultCount">0</em> объявлений</span>
+  </div>
 
-    document.getElementById('sendBtn').addEventListener('click', () => {
-      const num = document.getElementById('numberInput').value;
-      if (num === '') {
-        alert('Введите цифру!');
-        return;
-      }
-      // Отправляем данные в бота
-      tg.sendData(num.toString());
+  <form id="filterForm">
+
+    <!-- 0. Производитель (stepManufact) -->
+    <fieldset>
+      <legend>Производитель</legend>
+      <div id="stepManufact" class="deparea maker">
+        <dl class="deplist sort_hot">
+          <dt>Популярные</dt>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.BMW.))">BMW</a><em>14 322</em></dd>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.벤츠.))">Benz</a><em>12 970</em></dd>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.포르쉐.))">Porsche</a><em>2 318</em></dd>
+        </dl>
+        <dl class="deplist sort_lista">
+          <dt>По алфавиту</dt>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.Acura.))">Acura</a><em>3</em></dd>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.Audi.))">Audi</a><em>3 247</em></dd>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.BMW.))">BMW</a><em>14 322</em></dd>
+          <dd><a href="#" data-action="(And.Hidden.N._.(C.CarType.N._.Manufacturer.Porsche.))">Porsche</a><em>2 318</em></dd>
+        </dl>
+      </div>
+    </fieldset>
+
+    <!-- 1. Категория -->
+    <fieldset>
+      <legend>Категория</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="cat-sedan"    data-action="(Hidden.N._.CarType.N._.Category.Sedan.)"><label for="cat-sedan">Седан</label></li>
+        <li><input type="checkbox" id="cat-suv"      data-action="(Hidden.N._.CarType.N._.Category.SUV.)"><label for="cat-suv">Внедорожник</label></li>
+        <li><input type="checkbox" id="cat-hatchback"data-action="(Hidden.N._.CarType.N._.Category.Hatchback.)"><label for="cat-hatchback">Хэтчбек</label></li>
+      </ul>
+    </fieldset>
+
+    <!-- 2. Трансмиссия -->
+    <fieldset>
+      <legend>Трансмиссия</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="trans-auto"   data-action="(Hidden.N._.CarType.N._.Transmission.Automatic.)"><label for="trans-auto">Автомат</label></li>
+        <li><input type="checkbox" id="trans-manual" data-action="(Hidden.N._.CarType.N._.Transmission.Manual.)"><label for="trans-manual">Механика</label></li>
+      </ul>
+    </fieldset>
+
+    <!-- 3. Год выпуска (специальная реализация) -->
+    <fieldset>
+      <legend>Год выпуска</legend>
+      <div class="selectbox">
+        <select id="yearFrom">
+          <option value="">—</option>
+          <option>2025</option><option>2024</option><option>2023</option>
+          <option>2022</option><option>2021</option><option>2020</option>
+        </select>
+        –
+        <select id="yearTo">
+          <option value="">—</option>
+          <option>2025</option><option>2024</option><option>2023</option>
+          <option>2022</option><option>2021</option><option>2020</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <!-- 4. Пробег -->
+    <fieldset>
+      <legend>Пробег (км)</legend>
+      <div class="selectbox">
+        <select id="mileFrom" data-placeholder="(And.Mileage.range({min}..{max}))">
+          <option value="">—</option>
+          <option value="1000">1 000</option><option value="50000">50 000</option>
+          <option value="70000">70 000</option><option value="90000">90 000</option>
+          <option value="100000">100 000</option>
+        </select>
+        –
+        <select id="mileTo" data-placeholder="(And.Mileage.range({min}..{max}))">
+          <option value="">—</option>
+          <option value="1000">1 000</option><option value="50000">50 000</option>
+          <option value="70000">70 000</option><option value="90000">90 000</option>
+          <option value="100000">100 000</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <!-- 5. Тип топлива -->
+    <fieldset>
+      <legend>Тип топлива</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="fuel-petrol" data-action="(Hidden.N._.CarType.N._.FuelType.Petrol.)"><label for="fuel-petrol">Бензин</label></li>
+        <li><input type="checkbox" id="fuel-diesel" data-action="(Hidden.N._.CarType.N._.FuelType.Diesel.)"><label for="fuel-diesel">Дизель</label></li>
+        <li><input type="checkbox" id="fuel-hybrid" data-action="(Hidden.N._.CarType.N._.FuelType.Hybrid.)"><label for="fuel-hybrid">Гибрид</label></li>
+      </ul>
+    </fieldset>
+
+    <!-- 6. Цвет кузова -->
+    <fieldset>
+      <legend>Цвет кузова</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="color-white"  data-action="(Hidden.N._.CarType.N._.Color.White.)"><label for="color-white">Белый</label></li>
+        <li><input type="checkbox" id="color-black"  data-action="(Hidden.N._.CarType.N._.Color.Black.)"><label for="color-black">Чёрный</label></li>
+        <li><input type="checkbox" id="color-silver" data-action="(Hidden.N._.CarType.N._.Color.Silver.)"><label for="color-silver">Серебристый</label></li>
+      </ul>
+    </fieldset>
+
+    <!-- 7. Цвет салона -->
+    <fieldset>
+      <legend>Цвет салона</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="int-black" data-action="(Hidden.N._.CarType.N._.SeatColor.Black.)"><label for="int-black">Чёрный</label></li>
+        <li><input type="checkbox" id="int-beige" data-action="(Hidden.N._.CarType.N._.SeatColor.Beige.)"><label for="int-beige">Бежевый</label></li>
+      </ul>
+    </fieldset>
+
+    <!-- 8. Цена -->
+    <fieldset>
+      <legend>Цена (тыс. KRW)</legend>
+      <div class="selectbox">
+        <select id="priceFrom" data-placeholder="(And.Price.range({min}..{max}))">
+          <option value="">—</option>
+          <option value="500">500 000</option><option value="1000">1 000 000</option>
+        </select>
+        –
+        <select id="priceTo" data-placeholder="(And.Price.range({min}..{max}))">
+          <option value="">—</option>
+          <option value="1000">1 000 000</option><option value="2000">2 000 000</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <!-- 9. Регион -->
+    <fieldset>
+      <legend>Регион</legend>
+      <ul class="deplist">
+        <li><input type="checkbox" id="loc-seoul" data-action="(Hidden.N._.CarType.N._.OfficeCityState.Seoul.)"><label for="loc-seoul">Сеул</label></li>
+        <li><input type="checkbox" id="loc-pusan" data-action="(Hidden.N._.CarType.N._.OfficeCityState.Pusan.)"><label for="loc-pusan">Пусан</label></li>
+      </ul>
+    </fieldset>
+
+    <button type="button" id="applyFilters" class="btn_apply">Применить фильтры</button>
+  </form>
+</div>
+
+<script>
+  // Производитель — одна выделенная ссылка
+  document.querySelectorAll('#stepManufact a[data-action]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('#stepManufact a.selected')
+              .forEach(el => el.classList.remove('selected'));
+      a.classList.add('selected');
     });
-  </script>
+  });
+
+  // Сборка q и вывод URL
+  document.getElementById('applyFilters').addEventListener('click', () => {
+    const parts = [];
+
+    // 1) Производитель
+    const manu = document.querySelector('#stepManufact a.selected');
+    if (manu) {
+      // убираем внешние скобки
+      parts.push(manu.getAttribute('data-action').slice(1, -1));
+    }
+
+    // 2) Чекбоксы (кроме производителя)
+    document.querySelectorAll('#filterForm input[type=checkbox][data-action]').forEach(chk => {
+      if (chk.checked) {
+        parts.push(chk.dataset.action.slice(1, -1));
+      }
+    });
+
+    // 3) Год (как на оригинале: Hidden.N._.CarType.N._.Year.range(LL..UU).)
+    const y1 = document.getElementById('yearFrom').value;
+    const y2 = document.getElementById('yearTo').value;
+    if (y1 || y2) {
+      const lb = y1 ? y1 + '00' : '';
+      const ub = y2 ? y2 + '99' : '';
+      parts.push(`Hidden.N._.CarType.N._.Year.range(${lb}..${ub}).`);
+    }
+
+    // 4) Диапазоны пробега и цены по data-placeholder
+    document.querySelectorAll('#filterForm select[data-placeholder]').forEach(sel => {
+      const val = sel.value;
+      if (!val) return;
+      const tpl = sel.dataset.placeholder;
+      const field = tpl.match(/\.\s*(\w+)\.range/)[1];
+      // собрать пару селектов
+      const pair = [...document.querySelectorAll(`select[data-placeholder="${tpl}"]`)]
+                     .find(s => s !== sel);
+      const a = sel.id.endsWith('From') ? val : (pair?.value || '');
+      const b = sel.id.endsWith('To')   ? val : (pair?.value || '');
+      parts.push(`${field}.range(${a}..${b}).`);
+    });
+
+    // 5) Собираем окончательный q
+    const q = parts.length ? `(And.${parts.join('_.')})` : '';
+
+    // 6) sr по умолчанию
+    const sr = '|ModifiedDate|0|20';
+
+    const url = `https://api.encar.com/search/car/list/premium?count=true`
+              + `&q=${encodeURIComponent(q)}`
+              + `&sr=${encodeURIComponent(sr)}`;
+    console.log(url);
+  });
+</script>
+
 </body>
 </html>
